@@ -84,7 +84,7 @@ namespace IngameScript
 
         public Program()
         {
-            Runtime.UpdateFrequency = UpdateFrequency.Once | UpdateFrequency.Update10;
+            Runtime.UpdateFrequency = UpdateFrequency.Once;
 
             SetDefultConfiguration();
 
@@ -99,7 +99,7 @@ namespace IngameScript
 
             BuildBarterRelations();
 
-            BuildGoodsList();
+            
 
             ReloadGoodsLcdGoodsList();
         }
@@ -285,24 +285,41 @@ namespace IngameScript
         /// <summary>
         /// 从内部箱子取，只要[BarterConfigSection]列表里的第二项的type符合，则构建一个Goods添加到列表。
         /// </summary>
-        public void BuildGoodsList() {
+        public void BuildGoodsList()
+        {
+            goodsList.Clear();
             foreach (var cargo in stockCargos) { 
                 if (cargo == null || cargo.InventoryCount == 0) continue;
                 List<MyInventoryItem> items = new List<MyInventoryItem>();
                 cargo.GetInventory().GetItems(items);
-                goodsList.Clear();
                 foreach (var item in items) { 
                     if (item == null || item.Amount <= 0) continue;
                     var type = item.Type.ToString();
                     bool exists = barterRelations.Exists((e) => e.target == type);
                     if (!exists) continue;
-                    var barterRelation = barterRelations.Find((e) => e.target == type);
-                    Goods goods = new Goods();
-                    goods.BarterRelation = barterRelation;
-                    goods.IsSource = false;
-                    goods.Name = type;
-                    goods.Amount = item.Amount.RawValue;
-                    goodsList.Add(goods);
+                    var brIndex = barterRelations.FindIndex((e) => e.target == type);
+                    if (brIndex < 0) continue;
+                    var barterRelation = barterRelations[brIndex];
+                    var index = goodsList.FindIndex((g) => g.Name.Equals(type));
+                    if (index >= 0)
+                    {
+                        var g = goodsList[index];
+                        goodsList.RemoveAt(index);
+                        g.Amount = g.Amount + (item.Amount.RawValue); 
+                        g.BarterRelation = barterRelation;
+                        g.IsSource = false;
+                        g.Name = type;
+                        goodsList.Add(g);
+                    } else {
+                        Goods g = new Goods();
+                        g.BarterRelation = barterRelation;
+                        g.IsSource = false;
+                        g.Name = type;
+                        g.Amount = item.Amount.RawValue;
+                        goodsList.Add(g);
+                    }
+                   
+
                 }
             }
 
@@ -335,47 +352,50 @@ namespace IngameScript
             }
         }
 
-        public string AmountUnitConversion(double amount)
-        {
-            double temp = 0;
-            string result = "";
+        //public string AmountUnitConversion(double amount)
+        //{
+        //    double temp = 0;
+        //    string result = "";
 
-            if (amount >= 1000000000000000)
-            {
-                temp = Math.Round(amount / 1000000000000000, 1);
-                result = temp.ToString() + "KT";
-            }
-            else if (amount >= 1000000000000)
-            {
-                temp = Math.Round(amount / 1000000000000, 1);
-                result = temp.ToString() + "T";
-            }
-            else if (amount >= 1000000000)
-            {
-                temp = Math.Round(amount / 1000000000, 1);
-                result = temp.ToString() + "G";
-            }
-            else if (amount >= 1000000)
-            {
-                temp = Math.Round(amount / 1000000, 1);
-                result = temp.ToString() + "M";
-            }
-            else if (amount >= 1000)
-            {
-                temp = Math.Round(amount / 1000, 1);
-                result = temp.ToString() + "K";
-            }
-            else
-            {
-                temp = Math.Round(amount, 1);
-                result = temp.ToString();
-            }
+        //    if (amount >= 1000000000000000)
+        //    {
+        //        temp = Math.Round(amount / 1000000000000000, 1);
+        //        result = temp.ToString() + "KT";
+        //    }
+        //    else if (amount >= 1000000000000)
+        //    {
+        //        temp = Math.Round(amount / 1000000000000, 1);
+        //        result = temp.ToString() + "T";
+        //    }
+        //    else if (amount >= 1000000000)
+        //    {
+        //        temp = Math.Round(amount / 1000000000, 1);
+        //        result = temp.ToString() + "G";
+        //    }
+        //    else if (amount >= 1000000)
+        //    {
+        //        temp = Math.Round(amount / 1000000, 1);
+        //        result = temp.ToString() + "M";
+        //    }
+        //    else if (amount >= 1000)
+        //    {
+        //        temp = Math.Round(amount / 1000, 1);
+        //        result = temp.ToString() + "K";
+        //    }
+        //    else
+        //    {
+        //        temp = Math.Round(amount, 1);
+        //        result = temp.ToString();
+        //    }
 
-            return result;
-        }
+        //    return result;
+        //}
 
         public void ReloadGoodsLcdGoodsList() {
             Echo("ReloadGoodsLcdGoodsList");
+
+            BuildGoodsList();
+
             goodsListLcd.ContentType = ContentType.TEXT_AND_IMAGE;
             goodsListLcd.FontSize = 0.75F;
             goodsListLcd.FontColor = Color.SkyBlue;
@@ -433,7 +453,7 @@ namespace IngameScript
                 goodsListLcd.WriteText("---", true);
                 goodsListLcd.WriteText(g.BarterRelation.Ratio.ToString(), true);
                 goodsListLcd.WriteText("---", true);
-                goodsListLcd.WriteText(AmountUnitConversion(g.Amount / 1000000), true);
+                goodsListLcd.WriteText(g.Amount.ToString(), true);
                 goodsListLcd.WriteText("---", true);
                 goodsListLcd.WriteText(TranslateName(source), true);
                 goodsListLcd.WriteText("\n", true);
@@ -517,120 +537,156 @@ namespace IngameScript
         /// source / target = ratio 
         /// </summary>
         public void SubmitGoodsBarter() {
-            Echo("SubmitGoodsBarter");
             if (selectGoods.Name == null || selectGoods.Name.Length == 0 || selectGoods.IsSource) { return; }
             string source = selectGoods.BarterRelation.source;
+            string target = selectGoods.BarterRelation.target;
             double ratio = selectGoods.BarterRelation.Ratio;
-            long maxCanMoveSourceAmount = (long)(selectGoods.Amount * ratio);
-            long moveSourceAmountTotal = 0;
+            long maxCanChangeSourceAmount = (long)(selectGoods.Amount * ratio); // 站点关于该target最大能兑换的source数量
 
-            // 移动source到内部箱子里
-            foreach (var cargo in tradeCargos) {
-                if (cargo == null || cargo.InventoryCount == 0) continue;
-                List<MyInventoryItem> items = new List<MyInventoryItem>();
-                cargo.GetInventory().GetItems(items);
-                foreach (var item in items)
-                {
-                    if (item == null || item.Amount <= 0) continue;
-                    if (item.Type.ToString() != source) continue;
-                    long canMoveSourceAmount = Math.Min(item.Amount.RawValue, maxCanMoveSourceAmount);
-                    
-                    foreach (var c2 in stockCargos) {
-                        long volume = c2.GetInventory().MaxVolume.RawValue - c2.GetInventory().CurrentVolume.RawValue;
-                        long moveSourceAmount = Math.Min(volume, canMoveSourceAmount);
-                        var amount = MyFixedPoint.DeserializeString(moveSourceAmount.ToString());
-                        if (!c2.GetInventory().CanItemsBeAdded(amount, item.Type)) continue;
-                        c2.GetInventory().TransferItemFrom(cargo.GetInventory(), item, amount);
-                        canMoveSourceAmount -= moveSourceAmount;
-                        maxCanMoveSourceAmount -= moveSourceAmount;
-                        moveSourceAmountTotal += moveSourceAmount;
-                        if (canMoveSourceAmount <= 0) break;
-                    }
+            // 先找到source和target的数量
+            long targetAmount = GetTargetAmountFromStockCargos(target);
+            long sourceAmount = GetSourceAmountFromTradeCargos(source);
 
-                }
-                if (maxCanMoveSourceAmount <= 0) break;
+            // 获取两者的剩余空间是否足够
+            //long freeSpaceForStockCargos = GetFreeSpaceForStockCargos();
+            //long freeSpaceForTradeCargos = GetFreeSpaceForTradeCargos();
 
-            }
+            long moveSourceAmount = Math.Min(sourceAmount, maxCanChangeSourceAmount); // 在交易箱子里的总数，和站点关于该target最大能兑换的source数量，之间取最小值。
+            //moveSourceAmount = Math.Min(moveSourceAmount, freeSpaceForStockCargos);
+            long moveTargetAmount = (long)(moveSourceAmount / ratio); // 根据可移动的source数量计算需要移动target的数量
 
-            // 移动target到外部交易箱
-            long moveTargetAmountTotal = (long)(moveSourceAmountTotal / ratio);
+            //if (moveTargetAmount > freeSpaceForTradeCargos)
+            //{   // 交易箱子空间不足，此时则根据交易箱子的剩余空间设定target的移动量，并重新计算source的移动量
+            //    moveTargetAmount = freeSpaceForTradeCargos;
+            //    moveSourceAmount = (long)(moveTargetAmount * ratio);
+            //}
 
-            foreach (var cargo in stockCargos)
+            if (moveTargetAmount == 0 || moveSourceAmount == 0) { return; }
+            DebugLCD("moveSourceAmount=" + moveSourceAmount + " moveTargetAmount=" + moveTargetAmount);
+
+            // 根据计算好的移动量进行移动
+            MoveSouceFromTradeToStockCargos(source, moveSourceAmount);
+            MoveTargetFromStockToTrade(target, moveTargetAmount);
+
+            //ReloadGoodsLcdGoodsList();
+        }
+
+        public void MoveSouceFromTradeToStockCargos(string source, long moveSourceAmount) {
+            var needMoveTotal = moveSourceAmount;
+            foreach (var c in tradeCargos)
             {
-                if (cargo == null || cargo.InventoryCount == 0) continue;
+                IMyInventory fromInventory = c.GetInventory();
                 List<MyInventoryItem> items = new List<MyInventoryItem>();
-                cargo.GetInventory().GetItems(items);
-                foreach (var item in items)
+                fromInventory.GetItems(items);
+                var index = items.FindIndex((i) => i.Type.ToString() == source);
+                if (index < 0) continue;
+                var item = items[index];
+                long moveAmount = (long)Math.Min((item.Amount.RawValue), needMoveTotal);
+                if (moveAmount <= 0) { continue; }
+                foreach (var c2 in stockCargos)
                 {
-                    if (item == null || item.Amount <= 0) continue;
-                    if (item.Type.ToString() != selectGoods.Name) continue;
-                    long canMoveTargetAmount = Math.Min(item.Amount.RawValue, selectGoods.Amount);
-
-                    foreach (var c2 in tradeCargos)
-                    {
-                        long volume = c2.GetInventory().MaxVolume.RawValue - c2.GetInventory().CurrentVolume.RawValue;
-                        long moveTargetAmount = Math.Min(volume, canMoveTargetAmount);
-                        var amount = MyFixedPoint.DeserializeString(moveTargetAmount.ToString());
-                        if (!c2.GetInventory().CanItemsBeAdded(amount, item.Type)) continue;
-                        c2.GetInventory().TransferItemFrom(cargo.GetInventory(), item, amount);
-                        canMoveTargetAmount -= moveTargetAmount;
-                        if (canMoveTargetAmount <= 0) break;
-                    }
-
+                    IMyInventory toInventory = c2.GetInventory();
+                    toInventory.TransferItemFrom(fromInventory, item, MyFixedPoint.DeserializeString((moveAmount).ToString()));
+                    needMoveTotal -= moveAmount;
                 }
-                if (moveTargetAmountTotal <= 0) break;
+            }
+        }
+        public void MoveTargetFromStockToTrade(string target, long moveTargetAmount) {
+            long needMoveTotal = moveTargetAmount;
+            foreach (var c in stockCargos)
+            {
+                IMyInventory fromInventory = c.GetInventory();
+                List<MyInventoryItem> items = new List<MyInventoryItem>();
+                var index = items.FindIndex((i) => i.Type.ToString() == target);
+                if (index < 0) continue;
+                var item = items[index];
+                long moveAmount = (long)Math.Min((item.Amount.RawValue), needMoveTotal);
+                if (moveAmount <= 0) { continue; }
+                foreach (var c2 in tradeCargos)
+                {
+                    IMyInventory toInventory = c2.GetInventory();
+                    toInventory.TransferItemFrom(fromInventory, item, MyFixedPoint.DeserializeString((moveAmount).ToString()));
+                    needMoveTotal -= moveAmount;
+                }
             }
 
-            ReloadGoodsLcdGoodsList();
+        }
+
+        public long GetFreeSpaceForStockCargos() {
+            long result = 0;
+            foreach (var c in stockCargos) {
+                result += (c.GetInventory().MaxVolume.RawValue - c.GetInventory().CurrentVolume.RawValue);
+            }
+            return result;
+        }
+
+        public long GetFreeSpaceForTradeCargos()
+        {
+            long result = 0;
+            foreach (var c in tradeCargos)
+            {
+                result += (c.GetInventory().MaxVolume.RawValue - c.GetInventory().CurrentVolume.RawValue);
+            }
+            return result;
+        }
+
+
+        /// <summary>
+        /// 从所有存货箱统计target的数量
+        /// </summary>
+        public long GetTargetAmountFromStockCargos(string target) {
+            long result = 0;
+            foreach (var c in stockCargos) {
+                var strs = target.Split('/');
+                result += c.GetInventory().GetItemAmount(new MyItemType(strs[0], strs[1])).RawValue;
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 从交易箱子统计source数量
+        /// </summary>
+        public long GetSourceAmountFromTradeCargos(string source) {
+            long result = 0;
+            foreach (var c in tradeCargos)
+            {
+                var strs = source.Split('/');
+                result += c.GetInventory().GetItemAmount(new MyItemType(strs[0], strs[1])).RawValue;
+            }
+            return result;
         }
 
         public void Main(string argument, UpdateType updateSource)
         {
             Echo($"{DateTime.Now}");
 
-            DateTime beforDT = DateTime.Now;
-
             ProgrammableBlockScreen();
 
-            //DebugLCD("arg: " + argument);
+            DebugLCD("arg: " + argument);
             if ("ItemSelectDown" == argument)
             {
-                Echo("arg: " + argument);
-                DebugLCD("arg: " + argument);
                 DownSelectGoodsInLcd();
             }
             if ("ItemSelectUp" == argument)
             {
-                Echo("arg: " + argument);
-                DebugLCD("arg: " + argument);
                 UpSelectGoodsInLcd();
             }
 
             if ("ItemSelectPageUp" == argument)
             {
-                Echo("arg: " + argument);
-                DebugLCD("arg: " + argument);
                 PageUpSelectGoodsInlcd();
             }
 
             if ("ItemSelectPageDown" == argument)
             {
-                Echo("arg: " + argument);
-                DebugLCD("arg: " + argument);
                 PageDownSelectGoodsInlcd();
             }
 
-            if ("Cart:Submit" == argument)
+            if ("Submit" == argument)
             {
-                Echo("arg: " + argument);
-                DebugLCD("arg: " + argument);
                 SubmitGoodsBarter();
             }
 
-            DateTime afterDT = DateTime.Now;
-            TimeSpan ts = afterDT.Subtract(beforDT);
-            Echo("Total cost ms：" + ts.TotalMilliseconds);
-            //DebugLCD("Total cost ms: " + ts.TotalMilliseconds);
 
 
         }
