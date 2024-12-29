@@ -34,3 +34,23 @@
 ## 自定义数据
 
 自定义数据修改后，均需要重置代码！！！
+
+
+## 兑换比例列表 [[BarterConfig]]
+
+- `Length`: 列表有多少行就是多少
+- 格式：原料ID:产物ID:比例
+- ID如何查看: 用[基地脚本](https://github.com/se-scripts/mybase)时，对着面板图形化面板按F打开，会有物品ID列表
+- 比例：比例按产物为1时计算，代表兑换1个产物需要多少原料
+
+例子：
+
+```
+Length=3
+1=Source:Target:10
+2=MyObjectBuilder_Ore/Iron:MyObjectBuilder_Ingot/Iron:100
+3=MyObjectBuilder_Ore/Gold:MyObjectBuilder_Ingot/Gold:20
+```
+
+`MyObjectBuilder_Ore/Iron`是铁矿石的ID，`MyObjectBuilder_Ingot/Iron`是铁锭的ID，后面的`100`是比例，代表换一个铁锭需要100个铁矿石。
+
