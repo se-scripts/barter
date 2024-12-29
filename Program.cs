@@ -277,7 +277,7 @@ namespace IngameScript
                 BarterRelation barterRelation = new BarterRelation();
                 barterRelation.source = result[0];
                 barterRelation.target = result[1];
-                barterRelation.Ratio = Convert.ToInt64(result[2]);
+                barterRelation.Ratio = double.Parse(result[2]);
                 barterRelations.Add(barterRelation);
             }
         }
