@@ -40,7 +40,7 @@
 
 - `Length`: 列表有多少行就是多少
 - 格式：原料ID:产物ID:比例
-- ID如何查看: 用[基地脚本](https://github.com/se-scripts/mybase)时，对着面板图形化面板按F打开，会有物品ID列表
+- ID如何查看: 用[基地脚本](https://github.com/se-scripts/mybase)时，对着图形化显示的面板按F打开，会有物品ID列表
 - 比例：比例按产物为1时计算，代表兑换1个产物需要多少原料
 
 例子：
