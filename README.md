@@ -49,8 +49,10 @@
 Length=3
 1=Source:Target:10
 2=MyObjectBuilder_Ore/Iron:MyObjectBuilder_Ingot/Iron:100
-3=MyObjectBuilder_Ore/Gold:MyObjectBuilder_Ingot/Gold:20
+3=MyObjectBuilder_Ore/Gold:MyObjectBuilder_Ingot/Gold:0.2
 ```
 
-`MyObjectBuilder_Ore/Iron`是铁矿石的ID，`MyObjectBuilder_Ingot/Iron`是铁锭的ID，后面的`100`是比例，代表换一个铁锭需要100个铁矿石。
+`MyObjectBuilder_Ore/Iron`是铁矿石的ID，`MyObjectBuilder_Ingot/Iron`是铁锭的ID，后面的`100`是比例，代表换一个铁锭需要100个铁矿石；
+
+`MyObjectBuilder_Ore/Gold`是金矿石的ID，`MyObjectBuilder_Ingot/Gold`是金锭的ID，后面的`0.2`是比例，代表换一个金锭需要0.2个金矿石，也就是一个金矿石换5个金锭。
 
