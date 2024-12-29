@@ -41,18 +41,18 @@
 - `Length`: 列表有多少行就是多少
 - 格式：原料ID:产物ID:比例
 - ID如何查看: 用[基地脚本](https://github.com/se-scripts/mybase)时，对着图形化显示的面板按F打开，会有物品ID列表
-- 比例：比例按产物为1时计算，代表兑换1个产物需要多少原料
+- 比例：比例按原料为1时计算，代表1个原料能兑换多少产物
 
 例子：
 
 ```
 Length=3
 1=Source:Target:10
-2=MyObjectBuilder_Ore/Iron:MyObjectBuilder_Ingot/Iron:100
-3=MyObjectBuilder_Ore/Gold:MyObjectBuilder_Ingot/Gold:0.2
+2=MyObjectBuilder_Ore/Iron:MyObjectBuilder_Ingot/Iron:0.01
+3=MyObjectBuilder_Ore/Gold:MyObjectBuilder_Ingot/Gold:5
 ```
 
-`MyObjectBuilder_Ore/Iron`是铁矿石的ID，`MyObjectBuilder_Ingot/Iron`是铁锭的ID，后面的`100`是比例，代表换一个铁锭需要100个铁矿石；
+`MyObjectBuilder_Ore/Iron`是铁矿石的ID，`MyObjectBuilder_Ingot/Iron`是铁锭的ID，后面的`100`是比例，代表一个铁矿石能换0.01个铁锭；
 
-`MyObjectBuilder_Ore/Gold`是金矿石的ID，`MyObjectBuilder_Ingot/Gold`是金锭的ID，后面的`0.2`是比例，代表换一个金锭需要0.2个金矿石，也就是一个金矿石换5个金锭。
+`MyObjectBuilder_Ore/Gold`是金矿石的ID，`MyObjectBuilder_Ingot/Gold`是金锭的ID，后面的`0.2`是比例，代表一个金矿石能换5个金锭。
 

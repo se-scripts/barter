@@ -533,7 +533,7 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// 提交物品交换，比例按target为1时计算。
+        /// 提交物品交换，比例按source为1时计算。
         /// source / target = ratio 
         /// </summary>
         public void SubmitGoodsBarter() {
@@ -541,7 +541,7 @@ namespace IngameScript
             string source = selectGoods.BarterRelation.source;
             string target = selectGoods.BarterRelation.target;
             double ratio = selectGoods.BarterRelation.Ratio;
-            long maxCanChangeSourceAmount = (long)(selectGoods.Amount * ratio); // 站点关于该target最大能兑换的source数量
+            double maxCanChangeSourceAmount = (long)(selectGoods.Amount / ratio); // 站点关于该target最大能兑换的source数量
 
             // 先找到source和target的数量
             long targetAmount = GetTargetAmountFromStockCargos(target);
@@ -551,9 +551,9 @@ namespace IngameScript
             //long freeSpaceForStockCargos = GetFreeSpaceForStockCargos();
             //long freeSpaceForTradeCargos = GetFreeSpaceForTradeCargos();
 
-            long moveSourceAmount = Math.Min(sourceAmount, maxCanChangeSourceAmount); // 在交易箱子里的总数，和站点关于该target最大能兑换的source数量，之间取最小值。
+            double moveSourceAmount = Math.Min(sourceAmount, maxCanChangeSourceAmount); // 在交易箱子里的总数，和站点关于该target最大能兑换的source数量，之间取最小值。
             //moveSourceAmount = Math.Min(moveSourceAmount, freeSpaceForStockCargos);
-            long moveTargetAmount = (long)(moveSourceAmount / ratio); // 根据可移动的source数量计算需要移动target的数量
+            double moveTargetAmount = (long)(moveSourceAmount * ratio); // 根据可移动的source数量计算需要移动target的数量
 
             //if (moveTargetAmount > freeSpaceForTradeCargos)
             //{   // 交易箱子空间不足，此时则根据交易箱子的剩余空间设定target的移动量，并重新计算source的移动量
@@ -575,7 +575,7 @@ namespace IngameScript
             //ReloadGoodsLcdGoodsList();
         }
 
-        public void MoveSouceFromTradeToStockCargos(string source, long moveSourceAmount, out string resLog)
+        public void MoveSouceFromTradeToStockCargos(string source, double moveSourceAmount, out string resLog)
         {
             var needMoveTotal = moveSourceAmount;
             resLog = "start needMoveTotal: " + needMoveTotal + "\n";
@@ -588,8 +588,8 @@ namespace IngameScript
                 var index = items.FindIndex((i) => i.Type.ToString() == source);
                 if (index < 0) continue;
                 var item = items[index];
-                long itemAmount = item.Amount.ToIntSafe();
-                long moveAmount = Math.Min(itemAmount, needMoveTotal);
+                double itemAmount = item.Amount.ToIntSafe();
+                double moveAmount = Math.Min(itemAmount, needMoveTotal);
                 if (moveAmount <= 0) { continue; }
                 foreach (var c2 in stockCargos)
                 {
@@ -608,8 +608,8 @@ namespace IngameScript
                 }
             }
         }
-        public void MoveTargetFromStockToTrade(string target, long moveTargetAmount, out string resLog) {
-            long needMoveTotal = moveTargetAmount;
+        public void MoveTargetFromStockToTrade(string target, double moveTargetAmount, out string resLog) {
+            double needMoveTotal = moveTargetAmount;
             resLog = "start needMoveTotal: " + needMoveTotal + "\n";
             foreach (var c in stockCargos)
             {
@@ -620,8 +620,8 @@ namespace IngameScript
                 var index = items.FindIndex((i) => i.Type.ToString() == target);
                 if (index < 0) continue;
                 var item = items[index];
-                long itemAmount = item.Amount.ToIntSafe();
-                long moveAmount = Math.Min(itemAmount, needMoveTotal);
+                double itemAmount = item.Amount.ToIntSafe();
+                double moveAmount = Math.Min(itemAmount, needMoveTotal);
                 if (moveAmount <= 0) { continue; }
                 foreach (var c2 in tradeCargos)
                 {
@@ -643,17 +643,17 @@ namespace IngameScript
 
         }
 
-        public long GetFreeSpaceForStockCargos() {
-            long result = 0;
+        public double GetFreeSpaceForStockCargos() {
+            double result = 0;
             foreach (var c in stockCargos) {
                 result += (c.GetInventory().MaxVolume.RawValue - c.GetInventory().CurrentVolume.RawValue);
             }
             return result;
         }
 
-        public long GetFreeSpaceForTradeCargos()
+        public double GetFreeSpaceForTradeCargos()
         {
-            long result = 0;
+            double result = 0;
             foreach (var c in tradeCargos)
             {
                 result += (c.GetInventory().MaxVolume.RawValue - c.GetInventory().CurrentVolume.RawValue);
