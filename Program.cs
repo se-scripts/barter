@@ -15,7 +15,7 @@ namespace IngameScript
         /*
          * R e a d m e
          * -----------
-         * 太空工程师 以物易物脚本 可用于换矿站。
+         * 太空工程师 以物易物脚本。
          * 
          * @see <https://github.com/se-scripts/barter>
          * @author [chivehao](https://github.com/chivehao)
@@ -277,7 +277,7 @@ namespace IngameScript
                 BarterRelation barterRelation = new BarterRelation();
                 barterRelation.source = result[0];
                 barterRelation.target = result[1];
-                barterRelation.Ratio = Convert.ToInt16(result[2]);
+                barterRelation.Ratio = Convert.ToInt64(result[2]);
                 barterRelations.Add(barterRelation);
             }
         }
@@ -305,7 +305,7 @@ namespace IngameScript
                     {
                         var g = goodsList[index];
                         goodsList.RemoveAt(index);
-                        g.Amount = g.Amount + (item.Amount.RawValue); 
+                        g.Amount = g.Amount + (item.Amount.ToIntSafe()); 
                         g.BarterRelation = barterRelation;
                         g.IsSource = false;
                         g.Name = type;
@@ -315,7 +315,7 @@ namespace IngameScript
                         g.BarterRelation = barterRelation;
                         g.IsSource = false;
                         g.Name = type;
-                        g.Amount = item.Amount.RawValue;
+                        g.Amount = item.Amount.ToIntSafe();
                         goodsList.Add(g);
                     }
                    
@@ -562,51 +562,82 @@ namespace IngameScript
             //}
 
             if (moveTargetAmount == 0 || moveSourceAmount == 0) { return; }
-            DebugLCD("moveSourceAmount=" + moveSourceAmount + " moveTargetAmount=" + moveTargetAmount);
+            string resLog = "moveSourceAmount=" + moveSourceAmount + " moveTargetAmount=" + moveTargetAmount + "\n";
 
             // 根据计算好的移动量进行移动
-            MoveSouceFromTradeToStockCargos(source, moveSourceAmount);
-            MoveTargetFromStockToTrade(target, moveTargetAmount);
+            string resLog1, resLog2;
+            MoveSouceFromTradeToStockCargos(source, moveSourceAmount, out resLog1);
+            MoveTargetFromStockToTrade(target, moveTargetAmount, out resLog2);
+            resLog += resLog1;
+            resLog += resLog2;
 
+            DebugLCD(resLog);
             //ReloadGoodsLcdGoodsList();
         }
 
-        public void MoveSouceFromTradeToStockCargos(string source, long moveSourceAmount) {
+        public void MoveSouceFromTradeToStockCargos(string source, long moveSourceAmount, out string resLog)
+        {
             var needMoveTotal = moveSourceAmount;
+            resLog = "start needMoveTotal: " + needMoveTotal + "\n";
             foreach (var c in tradeCargos)
             {
+                if (needMoveTotal <= 0) { continue; }
                 IMyInventory fromInventory = c.GetInventory();
                 List<MyInventoryItem> items = new List<MyInventoryItem>();
                 fromInventory.GetItems(items);
                 var index = items.FindIndex((i) => i.Type.ToString() == source);
                 if (index < 0) continue;
                 var item = items[index];
-                long moveAmount = (long)Math.Min((item.Amount.RawValue), needMoveTotal);
+                long itemAmount = item.Amount.ToIntSafe();
+                long moveAmount = Math.Min(itemAmount, needMoveTotal);
                 if (moveAmount <= 0) { continue; }
                 foreach (var c2 in stockCargos)
                 {
+                    if (itemAmount <= 0 || needMoveTotal <= 0) { continue; }
+                    moveAmount = Math.Min(moveAmount, needMoveTotal);
                     IMyInventory toInventory = c2.GetInventory();
-                    toInventory.TransferItemFrom(fromInventory, item, MyFixedPoint.DeserializeString((moveAmount).ToString()));
-                    needMoveTotal -= moveAmount;
+                    bool success = toInventory.TransferItemFrom(fromInventory, item, MyFixedPoint.DeserializeString((moveAmount).ToString()));
+                    resLog += "[" + (success ? "Success" : "Fail") + "]";
+                    if (success) {
+                        itemAmount -= moveAmount;
+                        needMoveTotal -= moveAmount; 
+                    }
+                    resLog += "[" + c.DisplayNameText + " => " + c2.DisplayNameText + "] ";
+                    resLog += "moveAmount: " + moveAmount + "; needMoveTotal: " + needMoveTotal;
+                    resLog += "\n";
                 }
             }
         }
-        public void MoveTargetFromStockToTrade(string target, long moveTargetAmount) {
+        public void MoveTargetFromStockToTrade(string target, long moveTargetAmount, out string resLog) {
             long needMoveTotal = moveTargetAmount;
+            resLog = "start needMoveTotal: " + needMoveTotal + "\n";
             foreach (var c in stockCargos)
             {
+                if (needMoveTotal <= 0) { continue; }
                 IMyInventory fromInventory = c.GetInventory();
                 List<MyInventoryItem> items = new List<MyInventoryItem>();
+                fromInventory.GetItems(items);
                 var index = items.FindIndex((i) => i.Type.ToString() == target);
                 if (index < 0) continue;
                 var item = items[index];
-                long moveAmount = (long)Math.Min((item.Amount.RawValue), needMoveTotal);
+                long itemAmount = item.Amount.ToIntSafe();
+                long moveAmount = Math.Min(itemAmount, needMoveTotal);
                 if (moveAmount <= 0) { continue; }
                 foreach (var c2 in tradeCargos)
                 {
+                    if (itemAmount <= 0 || needMoveTotal <= 0) { continue; }
+                    moveAmount = Math.Min(moveAmount, needMoveTotal);
                     IMyInventory toInventory = c2.GetInventory();
-                    toInventory.TransferItemFrom(fromInventory, item, MyFixedPoint.DeserializeString((moveAmount).ToString()));
-                    needMoveTotal -= moveAmount;
+                    bool success = toInventory.TransferItemFrom(fromInventory, item, MyFixedPoint.DeserializeString((moveAmount).ToString()));
+                    resLog +=  "[" + (success ? "Success" : "Fail") + "]";
+                    if (success)
+                    {
+                        itemAmount -= moveAmount;
+                        needMoveTotal -= moveAmount;
+                    }
+                    resLog += "[" + c.DisplayNameText + " => " + c2.DisplayNameText + "] ";
+                    resLog += "moveAmount: " + moveAmount + "; needMoveTotal: " + needMoveTotal;
+                    resLog += "\n";
                 }
             }
 
@@ -638,7 +669,7 @@ namespace IngameScript
             long result = 0;
             foreach (var c in stockCargos) {
                 var strs = target.Split('/');
-                result += c.GetInventory().GetItemAmount(new MyItemType(strs[0], strs[1])).RawValue;
+                result += c.GetInventory().GetItemAmount(new MyItemType(strs[0], strs[1])).ToIntSafe();
             }
             return result;
         }
@@ -651,7 +682,7 @@ namespace IngameScript
             foreach (var c in tradeCargos)
             {
                 var strs = source.Split('/');
-                result += c.GetInventory().GetItemAmount(new MyItemType(strs[0], strs[1])).RawValue;
+                result += c.GetInventory().GetItemAmount(new MyItemType(strs[0], strs[1])).ToIntSafe();
             }
             return result;
         }
