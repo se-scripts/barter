@@ -422,7 +422,7 @@ namespace IngameScript
                 currentPageGoods.Add(goodsList[i]);
             }
 
-            if (selectGoods.Name == "" && currentPageGoods.Count > 0)
+            if (selectGoods.Name == emptyGoods.Name && currentPageGoods.Count > 0)
             {
                 UpdateSelectGoods(currentPageGoods[0]);
             }
