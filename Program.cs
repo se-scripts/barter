@@ -352,44 +352,44 @@ namespace IngameScript
             }
         }
 
-        //public string AmountUnitConversion(double amount)
-        //{
-        //    double temp = 0;
-        //    string result = "";
+        public string AmountUnitConversion(double amount)
+        {
+            double temp = 0;
+            string result = "";
 
-        //    if (amount >= 1000000000000000)
-        //    {
-        //        temp = Math.Round(amount / 1000000000000000, 1);
-        //        result = temp.ToString() + "KT";
-        //    }
-        //    else if (amount >= 1000000000000)
-        //    {
-        //        temp = Math.Round(amount / 1000000000000, 1);
-        //        result = temp.ToString() + "T";
-        //    }
-        //    else if (amount >= 1000000000)
-        //    {
-        //        temp = Math.Round(amount / 1000000000, 1);
-        //        result = temp.ToString() + "G";
-        //    }
-        //    else if (amount >= 1000000)
-        //    {
-        //        temp = Math.Round(amount / 1000000, 1);
-        //        result = temp.ToString() + "M";
-        //    }
-        //    else if (amount >= 1000)
-        //    {
-        //        temp = Math.Round(amount / 1000, 1);
-        //        result = temp.ToString() + "K";
-        //    }
-        //    else
-        //    {
-        //        temp = Math.Round(amount, 1);
-        //        result = temp.ToString();
-        //    }
+            if (amount >= 1000000000000000)
+            {
+                temp = Math.Round(amount / 1000000000000000, 1);
+                result = temp.ToString() + "KT";
+            }
+            else if (amount >= 1000000000000)
+            {
+                temp = Math.Round(amount / 1000000000000, 1);
+                result = temp.ToString() + "T";
+            }
+            else if (amount >= 1000000000)
+            {
+                temp = Math.Round(amount / 1000000000, 1);
+                result = temp.ToString() + "G";
+            }
+            else if (amount >= 1000000)
+            {
+                temp = Math.Round(amount / 1000000, 1);
+                result = temp.ToString() + "M";
+            }
+            else if (amount >= 1000)
+            {
+                temp = Math.Round(amount / 1000, 1);
+                result = temp.ToString() + "K";
+            }
+            else
+            {
+                temp = Math.Round(amount, 1);
+                result = temp.ToString();
+            }
 
-        //    return result;
-        //}
+            return result;
+        }
 
         public void ReloadGoodsLcdGoodsList() {
             Echo("ReloadGoodsLcdGoodsList");
@@ -405,7 +405,7 @@ namespace IngameScript
             goodsListLcd.WriteText("", false);
 
             goodsListLcd.WriteText("商品列表\n 总项数[" + goodsList.Count + "] 当前页[" + page + "/" + (((goodsList.Count - 1) / size) + 1) + "] \n", false);
-            goodsListLcd.WriteText("名称--------兑换比例--------库存--------需要\n", true);
+            goodsListLcd.WriteText("原料=>产物-----兑换比例-----库存\n", true);
 
             int first = (page - 1) * size;
             int last = (first + size) > goodsList.Count ? goodsList.Count : (first + size);
@@ -449,13 +449,13 @@ namespace IngameScript
                     target = g.Name;
                 }
 
+                goodsListLcd.WriteText(TranslateName(source), true);
+                goodsListLcd.WriteText("=>", true);
                 goodsListLcd.WriteText(TranslateName(target), true);
                 goodsListLcd.WriteText("---", true);
-                goodsListLcd.WriteText(g.BarterRelation.Ratio.ToString(), true);
+                goodsListLcd.WriteText(g.BarterRelation.Ratio > 1 ? "1:" + g.BarterRelation.Ratio.ToString() : (1 / g.BarterRelation.Ratio).ToString() + ":1", true);
                 goodsListLcd.WriteText("---", true);
-                goodsListLcd.WriteText(g.Amount.ToString(), true);
-                goodsListLcd.WriteText("---", true);
-                goodsListLcd.WriteText(TranslateName(source), true);
+                goodsListLcd.WriteText(AmountUnitConversion(g.Amount), true);
                 goodsListLcd.WriteText("\n", true);
             }
 
